@@ -1,8 +1,13 @@
 import 'package:bitcoin_ticker/coin_data.dart';
+import 'package:bitcoin_ticker/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
 // Only show certain classes from this imported package
 import 'dart:io' show Platform;
+
+import 'coin_data.dart';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -10,7 +15,22 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
-  String dropdownValue = 'USD';
+  String currencyDropdown = 'USD';  
+  double rate;
+
+  Future getExchangeRates(String coin, String currency) async {
+    //var url =
+        '$coinAPIexchangerate/BTC/$currencyDropdown/?apikey=$coinAPIkey';
+        var url = 'https://rest.coinapi.io/v1/exchangerate/BTC/EUR/?apikey=467F83A6-B238-40F8-A78D-CB05CC819957';
+    var response = await http.get(url);
+    if (response.statusCode == 200) {
+      var jsonResponse = convert.jsonDecode(response.body);
+      // return jsonResponse;
+      rate = jsonResponse['rate'];
+    } else {
+      print('Request failed with status: ${response.statusCode}.');
+    }
+  }
 
   // Lesson 173
   DropdownButton<String> androidDropdown() {
@@ -28,17 +48,19 @@ class _PriceScreenState extends State<PriceScreen> {
     }
 
     return DropdownButton<String>(
-      value: dropdownValue,
+      value: currencyDropdown,
       items: dropdownItems,
       onChanged: (newValue) {
         setState(
           () {
-            dropdownValue = newValue;
+            currencyDropdown = newValue;
+            getExchangeRates('BTC', currencyDropdown);
           },
         );
       },
     );
   }
+
   // Lesson 173
   CupertinoPicker iOSPicker() {
     // Lists and maps should be empty, not null
@@ -56,13 +78,14 @@ class _PriceScreenState extends State<PriceScreen> {
       itemExtent: 30.0,
       onSelectedItemChanged: (selectedIndex) {
         print(selectedIndex);
+        getExchangeRates('BTC', currenciesList[selectedIndex]);
       },
       children: cupertinoValues,
     );
   }
 
   // Use the dart:io Platform class to determine the platform and choose a picker
-  Widget getPicker () {
+  Widget getPicker() {
     if (Platform.isIOS) {
       return iOSPicker();
     } else if (Platform.isAndroid) {
@@ -124,7 +147,7 @@ class _PriceScreenState extends State<PriceScreen> {
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
                 child: Text(
-                  '1 BTC = ? USD',
+                  '1 BTC = $rate $currencyDropdown',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20.0,
